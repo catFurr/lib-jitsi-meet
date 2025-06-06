@@ -599,12 +599,10 @@ TraceablePeerConnection.prototype._peerMutedChanged = function(endpointId, media
  * @param {boolean} isMuted - The new mute state.
  */
 TraceablePeerConnection.prototype._sourceMutedChanged = function(sourceName, isMuted) {
-    const track = this.getRemoteTracks().find(t => t.getSourceName() === sourceName);
+    const track = this.getRemoteTracks().findLast(t => t.getSourceName() === sourceName);
 
     if (!track) {
-        if (FeatureFlags.isSsrcRewritingSupported()) {
-            logger.debug(`Remote track not found for source=${sourceName}, mute update failed!`);
-        }
+        logger.debug(`Remote track not found for source=${sourceName}, mute update failed!`);
 
         return;
     }
@@ -619,7 +617,7 @@ TraceablePeerConnection.prototype._sourceMutedChanged = function(sourceName, isM
  * @param {boolean} isMuted - The new value.
  */
 TraceablePeerConnection.prototype._sourceVideoTypeChanged = function(sourceName, videoType) {
-    const track = this.getRemoteTracks().find(t => t.getSourceName() === sourceName);
+    const track = this.getRemoteTracks().findLast(t => t.getSourceName() === sourceName);
 
     if (!track) {
         return;
@@ -1971,7 +1969,6 @@ TraceablePeerConnection.prototype._mungeDescription = function(description) {
     mungedSdp = this.tpcUtils.mungeOpus(mungedSdp);
     mungedSdp = this.tpcUtils.mungeCodecOrder(mungedSdp);
     mungedSdp = this.tpcUtils.setMaxBitrates(mungedSdp, true);
-    mungedSdp = this.tpcUtils.updateAv1DdHeaders(mungedSdp);
     const mungedDescription = {
         type: description.type,
         sdp: transform.write(mungedSdp)
@@ -2009,7 +2006,6 @@ TraceablePeerConnection.prototype.setLocalDescription = function(description) {
                 resolve();
             }, err => {
                 this.trace('setLocalDescriptionOnFailure', err);
-                this.eventEmitter.emit(RTCEvents.SET_LOCAL_DESCRIPTION_FAILED, err, this);
                 reject(err);
             });
     });
@@ -2047,9 +2043,9 @@ TraceablePeerConnection.prototype.setRemoteDescription = function(description) {
                 this._initializeDtlsTransport();
 
                 resolve();
-            }, err => {
+            })
+            .catch(err => {
                 this.trace('setRemoteDescriptionOnFailure', err);
-                this.eventEmitter.emit(RTCEvents.SET_REMOTE_DESCRIPTION_FAILED, err, this);
                 reject(err);
             });
     });
@@ -2149,6 +2145,7 @@ TraceablePeerConnection.prototype._updateVideoSenderEncodings = function(frameHe
     // case they were set when the endpoint was encoding video using the other codecs before switching over to VP9
     // K-SVC codec.
     if (codec === CodecMimeType.VP9
+        && browser.supportsSVC()
         && this.isSpatialScalabilityOn()
         && !this.tpcUtils.codecSettings[codec].scalabilityModeEnabled) {
         scaleFactors = scaleFactors.map(() => undefined);
@@ -2448,13 +2445,6 @@ TraceablePeerConnection.prototype._createOfferOrAnswer = function(isOffer, const
 
     const handleFailure = (err, rejectFn) => {
         this.trace(`create${logName}OnFailure`, err);
-        const eventType
-            = isOffer
-                ? RTCEvents.CREATE_OFFER_FAILED
-                : RTCEvents.CREATE_ANSWER_FAILED;
-
-        this.eventEmitter.emit(eventType, err, this);
-
         rejectFn(err);
     };
 
