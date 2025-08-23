@@ -1663,7 +1663,7 @@ export default class JitsiConference {
         if (!participant) {
             return;
         }
-        this.room.setAffiliation(participant.getConnectionJid(), 'owner');
+        this.room.setAffiliation(participant.getConnectionJid(), 'admin');
     }
 
     /**
