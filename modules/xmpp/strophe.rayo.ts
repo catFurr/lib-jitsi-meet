@@ -1,11 +1,11 @@
 import { getLogger } from '@jitsi/logger';
 import { $iq, type Connection } from 'strophe.js';
 
-import $ from '../util/XMLParser';
+import { findFirst, getAttribute } from '../util/XMLUtils';
 
 import ConnectionPlugin from './ConnectionPlugin';
 
-const logger = getLogger('modules/xmpp/strophe.rayo');
+const logger = getLogger('xmpp:strophe.rayo');
 
 const RAYO_XMLNS = 'urn:xmpp:rayo:1';
 
@@ -13,13 +13,13 @@ const RAYO_XMLNS = 'urn:xmpp:rayo:1';
  *
  */
 export default class RayoConnectionPlugin extends ConnectionPlugin {
-    private callResource: string | null = null;
+    private callResource: Nullable<string> = null;
 
     /**
      *
      * @param connection
      */
-    init(connection: Connection): void {
+    override init(connection: Connection): void {
         super.init(connection);
 
         connection.addHandler(
@@ -90,8 +90,7 @@ export default class RayoConnectionPlugin extends ConnectionPlugin {
                 result => {
                     logger.info('Dial result ', result);
 
-                    // eslint-disable-next-line newline-per-chained-call
-                    const resource = $(result).find('ref').attr('uri');
+                    const resource = getAttribute(findFirst(result, 'ref'), 'uri');
 
                     this.callResource = resource.substr('xmpp:'.length);
                     logger.info(`Received call resource: ${this.callResource}`);
