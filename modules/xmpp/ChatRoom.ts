@@ -255,6 +255,7 @@ export default class ChatRoom extends Listenable {
     public joined: boolean;
     public presMap: IPresenceMap;
     public role: Nullable<string>;
+    public localAffiliation: Nullable<string>;
     public focusMucJid: Nullable<string>;
     public connectionTimes: Record<string, number>;
     public transcriptionStatus: string;
@@ -294,6 +295,7 @@ export default class ChatRoom extends Listenable {
         this.joined = false;
         this.inProgressEmitted = false;
         this.role = null;
+        this.localAffiliation = null;
         this.focusMucJid = null;
         this.noBridgeAvailable = false;
         this.options = options || {};
@@ -819,7 +821,11 @@ export default class ChatRoom extends Listenable {
         }
 
         if (from === this.myroomjid) {
-            const newRole = member.role || 'none';
+            const newRole = member.affiliation === 'owner' || member.affiliation === 'admin'
+                ? (member.role || 'none') : 'none';
+
+            // Track local participant affiliation
+            this.localAffiliation = member.affiliation;
 
             if (!this.joined) {
                 this.joined = true;
@@ -1989,6 +1995,37 @@ export default class ChatRoom extends Listenable {
         }
 
         return null;
+    }
+
+    /**
+     * Returns the affiliation for the given member JID. For the local participant,
+     * the JID equals {@code this.myroomjid} and the affiliation is tracked on the room instance.
+     *
+     * @param {string} peerJid - Full MUC JID of the member.
+     * @returns {string|null} - The affiliation (e.g. 'owner', 'admin', 'member') or null if unknown.
+     */
+    getMemberAffiliation(peerJid) {
+        if (peerJid === this.myroomjid) {
+            return this.localAffiliation ?? null;
+        }
+
+        const member = this.members[peerJid];
+
+        if (member) {
+            return member.affiliation ?? null;
+        }
+
+        return null;
+    }
+
+    /**
+     * Returns whether the local participant is a host based on affiliation.
+     * Host is defined strictly as affiliation 'owner'.
+     *
+     * @returns {boolean}
+     */
+    isHost() {
+        return this.localAffiliation === 'owner';
     }
 
     /**

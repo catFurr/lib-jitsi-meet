@@ -3175,7 +3175,7 @@ export default class JitsiConference extends Listenable {
         if (!participant) {
             return;
         }
-        this.room.setAffiliation(participant.getConnectionJid(), 'owner');
+        this.room.setAffiliation(participant.getConnectionJid(), 'admin');
     }
 
     /**
