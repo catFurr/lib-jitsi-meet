@@ -8,9 +8,8 @@ import Settings from '../settings/Settings';
 import Listenable from '../util/Listenable';
 import { exists, findFirst, getAttribute, getText } from '../util/XMLUtils';
 
-const AuthenticationEvents
-    = require('../../service/authentication/AuthenticationEvents');
-const { XMPPEvents } = require('../../service/xmpp/XMPPEvents');
+import { AuthenticationEvents } from '../../service/authentication/AuthenticationEvents';
+import { XMPPEvents } from '../../service/xmpp/XMPPEvents';
 
 const logger = getLogger('xmpp:Moderator');
 
